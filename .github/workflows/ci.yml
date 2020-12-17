@@ -1,0 +1,95 @@
+name: tests for lifebit-ai/traits
+# This workflow runs the pipeline with the minimal test dataset to check that it completes without any syntax errors
+on: [push, pull_request]
+
+jobs:
+  binary_h2:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Binary trait and heritability
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile binary_h2
+  binary_gwas_catalogue:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Binary trait and genetic correlation against GWAS cat summary stats
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile binary_gwas_catalogue
+  binary_genetic_correlation_h2:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Binary trait with genetic correlation against quantitative trait
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile binary_genetic_correlation_h2
+  qt_h2:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Quantitative trait with H2
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile qt_h2
+  qt_gwas_catalogue:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Test with quantitative trait and genetic correlation using GWAS catalogue summary stats
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile qt_gwas_catalogue
+  qt_genetic_correlation_h2:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Test with quantitative trait and genetic correlation using qt trait
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile qt_genetic_correlation_h2

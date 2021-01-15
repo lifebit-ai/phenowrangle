@@ -40,11 +40,27 @@ nextflow run main.nf \
   --vcfs_list "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/vcfs.csv"
 ```
 
+### pheWAS
+
+```bash
+nextflow run main.nf \
+                     --mode 'phewas'
+                     --phenofile "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
+                     --metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                     --continuous_var_aggregation "mean" \
+                     --continuous_var_transformation "log10" \
+                     --pheno_col "Specimen type" \
+                     --case_group "NOSE" \
+                     --design_mode "case_vs_control_contrast" \
+                     --pheno_codes "icd10"
+
+```
+
 ## 1 - Parameters
 
 ### 1.1 - Required parameters
 
-- **--mode** : String containing type of pipeline to be run. This prepares the data for one pipeline or another depending on the option.
+- **--mode** : String containing type of pipeline to be run. This prepares the data for one pipeline or another depending on the option. Accepts 'gwas' and 'phewas'
 - **--pheno_data** : Path to CSV file containing the phenotypic data to be used.
 - **--pheno_metadata** : Path to CSV containing metadata about the phenotypic variables. This helps the scripts to identify the schema and decide which transformation corresponds to each variable.
 - **--id_column** : String defining the name of the ID column. Defaults to `Platekey_in_aggregate_VCF-0.0`

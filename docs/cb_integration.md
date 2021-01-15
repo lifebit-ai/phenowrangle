@@ -1,5 +1,5 @@
 
-# CB integration with GWAS pipeline
+# CB integration with *WAS pipeline
 
 ## 1. Ingestion
 
@@ -41,6 +41,6 @@ Note: It doesn't assume that sex comes from any column in particular. If present
 
 # Future work
 
-- [ ] **(1) Add PheWAS preprocessing scripts**
+- [x] **(1) Add PheWAS preprocessing scripts**
 
 - [ ] **(2) Add mode to simulate phenotypic data**

@@ -27,7 +27,7 @@ jobs:
       matrix:
         nxf_ver: ['20.01.0', '']
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Install Nextflow
         run: |
           export NXF_VER=${{ matrix.nxf_ver }}
@@ -36,4 +36,21 @@ jobs:
       - name: Quantitative gwas
         run: |
           nextflow run ${GITHUB_WORKSPACE} -profile gwas_qt
+  phewas:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+        continuous_var_aggregation: [median, min, max, median]
+        continuous_var_transformation: [log, log10, log2, zscores, None]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: general test for phewas
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile phewas
   

@@ -22,7 +22,7 @@ def helpMessage() {
     nextflow run main.nf --mode gwas --pheno_data <S3/URL/PATH> --pheno_metadata <S3/URL/PATH>
     
     Essential parameters:
-    --mode                           String containing type of pipeline to be run. This prepares the data for one pipeline or another depending on the option.
+    --mode                           String containing type of pipeline to be run. Accepts 'gwas', 'phewas'.
     --pheno_data                     Path to CSV file containing the phenotypic data to be used.
     --pheno_metadata                 Path to CSV containing metadata about the phenotypic variables. This helps the scripts to identify the schema and decide which transformation corresponds to each variable.
     
@@ -145,7 +145,7 @@ if (params.mode == 'gwas'){
 
       mkdir -p ${params.outdir}/design_matrix
       
-      transform_cb_output.R --input_cb_data "$pheno_data" \
+      transform_cb_output_gwas.R --input_cb_data "$pheno_data" \
                             --input_meta_data "$pheno_metadata" \
                             --phenoCol "${params.pheno_col}" \
                             --query_file "${query_file}" \
@@ -178,7 +178,7 @@ if (params.mode == 'gwas'){
 
       mkdir -p ${params.outdir}/design_matrix
       
-      transform_cb_output.R --input_cb_data "$pheno_data" \
+      transform_cb_output_gwas.R --input_cb_data "$pheno_data" \
                             --input_meta_data "$pheno_metadata" \
                             --phenoCol "${params.pheno_col}" \
                             --query_file "${ch_query}" \
@@ -190,63 +190,100 @@ if (params.mode == 'gwas'){
       """
     }
   }
+}
 
-  //TODO: Check this later and finish it with the processes 
-  if (params.trait_type == 'binary' && params.case_group && params.design_mode != 'all_contrasts') {
-    process add_design_matrix_case_group {
-      tag "$name"
-      publishDir "${params.outdir}/contrasts", mode: 'copy'
 
-      input:
-      file(pheFile) from ch_transform_cb
-      file(json) from ch_encoding_json
+/*--------------------------------------------------
+  Ingest CB pheWAS
+---------------------------------------------------*/
 
-      output:
-      file("${params.output_tag}_design_matrix_control_*.phe") into (phenoCh_gwas_filtering, phenoCh)
+if (params.mode == 'phewas'){
+  process transform_cb_output {
+    tag "$name"
+    publishDir "${params.outdir}/design_matrix", mode: 'copy'
 
-      script:
-      """
-      cp /opt/bin/* .
+    input:
+    file(pheno_data) from ch_pheno_data
+    file(pheno_metadata) from ch_pheno_metadata
 
-      mkdir -p ${params.outdir}/contrasts
+    output:
+    file("*.json") into ch_encoding_json
+    file("*id_code_count.csv") into codes_pheno
+    file("*.phe") into ch_transform_cb
 
-      create_design.R --input_file ${pheFile} \
-                      --mode "${params.design_mode}" \
-                      --case_group "${params.case_group}" \
-                      --outdir . \
-                      --output_tag ${params.output_tag} \
-                      --phenoCol "${params.pheno_col}"
-                        
-      """
-    }
+    script:
+    """
+    
+    transform_cb_output_phewas.R --input_cb_data "${pheno_data}" \
+                          --input_meta_data "${pheno_metadata}" \
+                          --phenoCol "${params.pheno_col}" \
+                          --continuous_var_transformation "${params.continuous_var_transformation}" \
+                          --continuous_var_aggregation "${params.continuous_var_aggregation}" \
+                          --outdir "." \
+                          --outprefix "${params.output_tag}"
+    """
   }
+}
 
-  if (params.trait_type == 'binary' && params.design_mode == 'all_contrasts') {
-    process add_design_matrix_all{
-      tag "$name"
-      publishDir "${params.outdir}/contrasts", mode: 'copy'
+/*--------------------------------------------------
+  Design matrix generation for contrasts
+---------------------------------------------------*/
 
-      input:
-      file(pheFile) from ch_transform_cb
-      file(json) from ch_encoding_json
+//TODO: Check this later and finish it with the processes 
+if (params.trait_type == 'binary' && params.case_group && params.design_mode != 'all_contrasts') {
+  process add_design_matrix_case_group {
+    tag "$name"
+    publishDir "${params.outdir}/contrasts", mode: 'copy'
 
-      output:
-      file("${params.output_tag}_design_matrix_control_*.phe") into (phenoCh_gwas_filtering, phenoCh)
+    input:
+    file(pheFile) from ch_transform_cb
+    file(json) from ch_encoding_json
 
-      script:
-      """
-      cp /opt/bin/* .
+    output:
+    file("${params.output_tag}_design_matrix_control_*.phe") into (phenoCh_gwas_filtering, phenoCh)
 
-      mkdir -p ${params.outdir}/contrasts
+    script:
+    """
+    cp /opt/bin/* .
 
-      create_design.R --input_file ${pheFile} \
-                      --mode "${params.design_mode}" \
-                      --outdir . \
-                      --output_tag ${params.output_tag} \
-                      --phenoCol "${params.pheno_col}"
-                        
-      """
-    }
+    mkdir -p ${params.outdir}/contrasts
+
+    create_design.R --input_file ${pheFile} \
+                    --mode "${params.design_mode}" \
+                    --case_group "${params.case_group}" \
+                    --outdir . \
+                    --output_tag ${params.output_tag} \
+                    --phenoCol "${params.pheno_col}"
+                      
+    """
+  }
+}
+
+if (params.trait_type == 'binary' && params.design_mode == 'all_contrasts') {
+  process add_design_matrix_all{
+    tag "$name"
+    publishDir "${params.outdir}/contrasts", mode: 'copy'
+
+    input:
+    file(pheFile) from ch_transform_cb
+    file(json) from ch_encoding_json
+
+    output:
+    file("${params.output_tag}_design_matrix_control_*.phe") into (phenoCh_gwas_filtering, phenoCh)
+
+    script:
+    """
+    cp /opt/bin/* .
+
+    mkdir -p ${params.outdir}/contrasts
+
+    create_design.R --input_file ${pheFile} \
+                    --mode "${params.design_mode}" \
+                    --outdir . \
+                    --output_tag ${params.output_tag} \
+                    --phenoCol "${params.pheno_col}"
+                      
+    """
   }
 }
 

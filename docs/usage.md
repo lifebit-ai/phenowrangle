@@ -10,7 +10,7 @@ Allows for processing and transformation of data from Cohort Browser into data r
 
 In order to use this pipeline for GWAS, you can run the following example:
 
-**GWAS Binary**
+#### GWAS Binary
 
 ```bash
 nextflow run main.nf \
@@ -26,7 +26,7 @@ nextflow run main.nf \
   --vcfs_list "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/vcfs.csv"
 ```
 
-**GWAS Quantitative**
+#### GWAS Quantitative
 
 ```bash
 nextflow run main.nf \
@@ -40,8 +40,7 @@ nextflow run main.nf \
   --vcfs_list "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/vcfs.csv"
 ```
 
-
-## 1 - Parameters:
+## 1 - Parameters
 
 ### 1.1 - Required parameters
 

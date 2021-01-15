@@ -1,7 +1,7 @@
 
 # CB integration with GWAS pipeline
 
-## 1. **Ingestion**
+## 1. Ingestion
 
 Two `.csv` files:
 
@@ -10,15 +10,15 @@ Two `.csv` files:
 
 These two files need to be passed to the pipeline in order to make it work.
 
-## 2. **Aggregation & Transformation**
+## 2. Aggregation & Transformation
 
 Adds a script that takes the phenotypic data and metadata associated and performs the following tasks:
 
 - Cleans the data from files with missing genotypic data
 - Reads column by column selected by the user and applies a corresponding aggregation for multiple measurements and additionally transform the data if needed. Currently, is compatible with:
-  - Categorical (multi-level or not) -> Selects the first measurement until querying is allowed. 
+  - Categorical (multi-level or not) -> Selects the first measurement until querying is allowed.
     - Adds `Unknown` label instead of NA, they are treated as another group in analysis downstream and used as part of controls (when contrast group is specified) or as a constrast group (if no contrast group is specified)  -> **This behaviour will be reviewed in the future and modified accordingly.**
-  - Integer/Continuous -> Applies aggregation using mean, min, max, avg across measurements (instances and arrays) and transformation (log, log10, log2, Z-score, None). 
+  - Integer/Continuous -> Applies aggregation using mean, min, max, avg across measurements (instances and arrays) and transformation (log, log10, log2, Z-score, None).
     - The aggregation by applying it by grouping all the arrays of an instance, and then aggregating again the resulting summarised instances.
     - If NAs are present across arrays the aggregation will ignore them when computing the aggregation.
   - Dates and Time -> transforms them into `YYYYMMDD` integer which can be used as covariates
@@ -27,7 +27,7 @@ Adds a script that takes the phenotypic data and metadata associated and perform
 
 Note: It doesn't assume that sex comes from any column in particular. If present it will be kept as a covariate for GWAS and transformed as any other categorical variable.
 
-## 3. **Multiple design matrices**
+## 3. Multiple design matrices
 
   Given a categorical phenotype, explores all the potential combinations of interest for users in terms of contrasts to be run. Different scenarios to consider. By convention 1=case, 0=control
 

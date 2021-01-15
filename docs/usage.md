@@ -55,7 +55,7 @@ nextflow run main.nf \
 - **--pheno_col** : Named of the phenotypic column of interest. Required for GWAS and pipelines requiring contrasts/regression.
 - **--query** : Path to file containing query resulting from filtering data in the CB.
 - **--design_mode** : String containing the type of design matrix wanted to be produced
-- **--case_group** : String containing the case group for the desired contrasts. 
+- **--case_group** : String containing the case group for the desired contrasts.
 - **--continuous_var_transformation** : Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
 - **--continuous_var_aggregation** : Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
 - **--trait_type** : Type of regression being executed: 'binary' or 'quantitative'

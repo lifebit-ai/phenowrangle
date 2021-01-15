@@ -4,6 +4,7 @@
 ## 1. **Ingestion**
 
 Two `.csv` files:
+
 - **CB phenotypic data:** Contains columns selected by user with all respective measurements
 - **CB metadata for phenotypes:** Contains information about the columns
 
@@ -12,6 +13,7 @@ These two files need to be passed to the pipeline in order to make it work.
 ## 2. **Aggregation & Transformation**
 
 Adds a script that takes the phenotypic data and metadata associated and performs the following tasks:
+
 - Cleans the data from files with missing genotypic data
 - Reads column by column selected by the user and applies a corresponding aggregation for multiple measurements and additionally transform the data if needed. Currently, is compatible with:
   - Categorical (multi-level or not) -> Selects the first measurement until querying is allowed. 
@@ -37,12 +39,8 @@ Note: It doesn't assume that sex comes from any column in particular. If present
 | Scenario 2 | User wants to run on a particular case but wants to compare to each of the other cases as controls independently | Subset case vs each group as control | Find associations that are different to an specific group |
 | Scenario 3 | User doesn't have a particular group in mind and wants to run an exploration on the phenotype | All vs All approach | Allows for exploration or assumptions free analysis |
 
-
 # Future work
 
 - [ ] **(1) Add PheWAS preprocessing scripts**
 
 - [ ] **(2) Add mode to simulate phenotypic data**
-
-
-

@@ -7,9 +7,11 @@ Allows for processing and transformation of data from Cohort Browser into data r
 ## Running the pipeline
 
 ### GWAS
+
 In order to use this pipeline for GWAS, you can run the following example:
 
 **GWAS Binary**
+
 ```bash
 nextflow run main.nf \
   --mode "gwas" \
@@ -25,6 +27,7 @@ nextflow run main.nf \
 ```
 
 **GWAS Quantitative**
+
 ```bash
 nextflow run main.nf \
   --mode "gwas" \
@@ -39,13 +42,13 @@ nextflow run main.nf \
 
 
 ## 1 - Parameters:
-### 1.1 - Required parameters
-- **--mode** : String containing type of pipeline to be run. This prepares the data for one pipeline or another depending on the option.
 
+### 1.1 - Required parameters
+
+- **--mode** : String containing type of pipeline to be run. This prepares the data for one pipeline or another depending on the option.
 - **--pheno_data** : Path to CSV file containing the phenotypic data to be used.
 - **--pheno_metadata** : Path to CSV containing metadata about the phenotypic variables. This helps the scripts to identify the schema and decide which transformation corresponds to each variable.
 - **--id_column** : String defining the name of the ID column. Defaults to `Platekey_in_aggregate_VCF-0.0`
-
 
 ### 2.2 - Optional parameters
 

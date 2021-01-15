@@ -7,9 +7,13 @@ The directories listed below will be created in the results directory after the 
 ## 1 - Outputs
 
 ### 1.1 - GWAS
-`genetic_correlation` folder containing:
-- `<filename>.log` Txt file with the results of the analysis between trait being analysed in the GWAS pipeline and the respective external GWAS study.
 
-`heritability` folder containing:
-- `<filename>.log` Txt file with the results of the heritability analysis.
+`design_matrix` folder containing:
 
+- `<mappings>.json/.csv` .json/.csv file containing mappings between encodings and original values.
+- `<filename>.phe` file containing transformed phenotypic data.
+- `samples_id.txt` file containing list of samples present in genomic data.
+
+`constrasts` folder containing:
+
+- `<filename>.phe` Constrasts produced by pipeline when trait_type is 'binary'

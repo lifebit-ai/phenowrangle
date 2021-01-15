@@ -1,6 +1,6 @@
 # You can use this file to create a conda environment for this pipeline:
 #   conda env create -f environment.yml
-name: phenowrangler
+name: phenowrangle
 channels:
   - conda-forge
   - bioconda
@@ -24,4 +24,5 @@ dependencies:
   - fonts-anaconda=1
   - r-data.table
   - r-tidyverse
+  - r-snakecase
   - conda-forge::r-optparse

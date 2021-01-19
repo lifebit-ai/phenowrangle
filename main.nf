@@ -19,16 +19,15 @@ def helpMessage() {
     
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run main.nf --mode gwas --pheno_data <S3/URL/PATH> --pheno_metadata <S3/URL/PATH>
+    nextflow run main.nf --mode plink --pheno_data <S3/URL/PATH> --pheno_metadata <S3/URL/PATH>
     
     Essential parameters:
-    --mode                           String containing type of pipeline to be run. Accepts 'gwas', 'phewas'.
+    --mode                           String containing type of desired output. Accepts 'plink'.
     --pheno_data                     Path to CSV file containing the phenotypic data to be used.
     --pheno_metadata                 Path to CSV containing metadata about the phenotypic variables. This helps the scripts to identify the schema and decide which transformation corresponds to each variable.
     
     Optional parameters:
     --id_column                      String defining the name of the ID column. Defaults to `Platekey_in_aggregate_VCF-0.0`    --gwas_cat_study_id              String containing GWAS catalogue study id
-    --vcfs_list                      Path to CSV containing links to genotypic data. Used to infer the sample ids used for the given cohort.
     --pheno_col                      Named of the phenotypic column of interest. Required for GWAS and pipelines requiring contrasts/regression.
     --query                          Path to file containing query resulting from filtering data in the CB.
     --design_mode                    String containing the type of design matrix wanted to be produced
@@ -91,40 +90,15 @@ ch_query =  params.query ? Channel.value(file(params.query)) : "None"
 ch_pheno_data = params.pheno_data ? Channel.value(file(params.pheno_data)) : Channel.empty()
 ch_pheno_metadata = params.pheno_metadata ? Channel.value(file(params.pheno_metadata)) : Channel.empty()
 
-ch_vcfs  = params.vcfs_list ? Channel
-                                  .fromPath(params.vcfs_list)
-                                  .splitCsv(skip:1)
-                                  .map { chr, vcf, index -> [file(vcf).simpleName, chr, file(vcf), file(index)] } : Channel.empty()
-
-
 /*--------------------------------------------------
-  Ingest CB GWAS data
+  Transform CB to plink phenofile data &
 ---------------------------------------------------*/
 
-if (params.mode == 'gwas'){
-//* Get samplesID from vcfs
-
-  process get_vcf_ids {
-      publishDir "${params.outdir}/design_matrix", mode: 'copy'
-
-      input:
-      set val(name), val(chr), file(vcf), file(index) from ch_vcfs.first()
-
-      output:
-      file("*.txt") into sample_id_ch
-
-      script:
-      """
-      bcftools query --list-samples $vcf > samples_id.txt
-      """
-
-
-    }
+if (params.mode == 'plink'){
 
   //*  Ingest output from CB
 
-  if (params.pheno_data && params.query){
-    process transforms_cb_output_query {
+    process transforms_cb_to_plink {
       tag "$name"
       publishDir "${params.outdir}/design_matrix", mode: 'copy'
 
@@ -132,12 +106,12 @@ if (params.mode == 'gwas'){
       file(pheno_data) from ch_pheno_data
       file(pheno_metadata) from ch_pheno_metadata
       file(query_file) from ch_query
-      file(sample_ids) from sample_id_ch
 
       output:
-      file("${params.output_tag}_.phe") into ch_transform_cb
+      file("${params.output_tag}.phe") into ch_transform_cb
       file("*.json") into ch_encoding_json
       file("*.csv") into ch_encoding_csv
+      file("*id_code_count.csv") optional true into codes_pheno
 
       script:
       """
@@ -145,85 +119,20 @@ if (params.mode == 'gwas'){
 
       mkdir -p ${params.outdir}/design_matrix
       
-      transform_cb_output_gwas.R --input_cb_data "$pheno_data" \
+      CB_to_plink_pheno.R --input_cb_data "$pheno_data" \
                             --input_meta_data "$pheno_metadata" \
                             --phenoCol "${params.pheno_col}" \
                             --query_file "${query_file}" \
-                            --sample_ids_file "${sample_ids}" \
                             --continuous_var_transformation "${params.continuous_var_transformation}" \
                             --continuous_var_aggregation "${params.continuous_var_aggregation}" \
                             --outdir "." \
                             --output_tag "${params.output_tag}"
       """
     }
-  }
-  if (params.pheno_data && !params.query){
-    process transforms_cb_output_noquery {
-      tag "$name"
-      publishDir "${params.outdir}/design_matrix", mode: 'copy'
-
-      input:
-      file(pheno_data) from ch_pheno_data
-      file(pheno_metadata) from ch_pheno_metadata
-      file(sample_ids) from sample_id_ch
-
-      output:
-      file("${params.output_tag}_.phe") into ch_transform_cb
-      file("*.json") into ch_encoding_json
-      file("*.csv") into ch_encoding_csv
-
-      script:
-      """
-      cp /opt/bin/* .
-
-      mkdir -p ${params.outdir}/design_matrix
-      
-      transform_cb_output_gwas.R --input_cb_data "$pheno_data" \
-                            --input_meta_data "$pheno_metadata" \
-                            --phenoCol "${params.pheno_col}" \
-                            --query_file "${ch_query}" \
-                            --sample_ids_file "${sample_ids}" \
-                            --continuous_var_transformation "${params.continuous_var_transformation}" \
-                            --continuous_var_aggregation "${params.continuous_var_aggregation}" \
-                            --outdir "." \
-                            --output_tag "${params.output_tag}"
-      """
-    }
-  }
 }
 
 
-/*--------------------------------------------------
-  Ingest CB pheWAS
----------------------------------------------------*/
 
-if (params.mode == 'phewas'){
-  process transform_cb_output {
-    tag "$name"
-    publishDir "${params.outdir}/design_matrix", mode: 'copy'
-
-    input:
-    file(pheno_data) from ch_pheno_data
-    file(pheno_metadata) from ch_pheno_metadata
-
-    output:
-    file("*.json") into ch_encoding_json
-    file("*id_code_count.csv") into codes_pheno
-    file("*.phe") into ch_transform_cb
-
-    script:
-    """
-    
-    transform_cb_output_phewas.R --input_cb_data "${pheno_data}" \
-                          --input_meta_data "${pheno_metadata}" \
-                          --phenoCol "${params.pheno_col}" \
-                          --continuous_var_transformation "${params.continuous_var_transformation}" \
-                          --continuous_var_aggregation "${params.continuous_var_aggregation}" \
-                          --outdir "." \
-                          --outprefix "${params.output_tag}"
-    """
-  }
-}
 
 /*--------------------------------------------------
   Design matrix generation for contrasts

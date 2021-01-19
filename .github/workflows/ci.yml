@@ -3,7 +3,7 @@ name: tests for lifebit-ai/phenowrangle
 on: [push, pull_request]
 
 jobs:
-  gwas_binary:
+  plink_binary:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,14 +18,15 @@ jobs:
           export NXF_VER=${{ matrix.nxf_ver }}
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name: Binary gwas
+      - name: Binary plink
         run: |
           nextflow run ${GITHUB_WORKSPACE} --design_mode ${{ matrix.design_mode }} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile gwas_binary
-  gwas_qt:
+  plink_qt:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         nxf_ver: ['20.01.0', '']
+        query: ['None', 's3://marcos-lifebit/phenowrangle/query.json']
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow
@@ -33,16 +34,17 @@ jobs:
           export NXF_VER=${{ matrix.nxf_ver }}
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name: Quantitative gwas
+      - name: Quantitative plink
         run: |
-          nextflow run ${GITHUB_WORKSPACE} -profile gwas_qt
-  phewas:
+          nextflow run ${GITHUB_WORKSPACE} --query ${{ matrix.query }} -profile plink_qt
+  plink_phewas:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         nxf_ver: ['20.01.0', '']
-        continuous_var_aggregation: [median, min, max, median]
-        continuous_var_transformation: [log, log10, log2, zscores, None]
+        continuous_var_aggregation: [median]
+        continuous_var_transformation: [None]
+        query: ['None', 's3://marcos-lifebit/phenowrangle/query.json']
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow
@@ -50,7 +52,7 @@ jobs:
           export NXF_VER=${{ matrix.nxf_ver }}
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name: general test for phewas
+      - name: general test for plink_phewas
         run: |
-          nextflow run ${GITHUB_WORKSPACE} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile phewas
+          nextflow run ${GITHUB_WORKSPACE} --query ${{ matrix.query }} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile plink_phewas
   

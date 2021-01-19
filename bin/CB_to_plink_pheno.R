@@ -12,6 +12,7 @@ library(data.table)
 library(tidyverse)
 library(jsonlite)
 library(snakecase)
+library(lubridate)
     })
 
 options(warn=-1)
@@ -26,9 +27,7 @@ option_list = list(
   make_option(c("--input_meta_data"), action="store", default='assets/Metadata phenotypes - Mapping file.csv', type='character',
               help="String containing input metadata for columns in Cohort Browser output."),
   make_option(c("--query_file"), action="store", default='None', type='character',
-              help="String containing path/URL to query file."),
-  make_option(c("--sample_ids_file"), action="store", default='None', type='character',
-              help="String containing path/URL to query file."),  
+              help="String containing path/URL to query file."), 
   make_option(c("--phenoCol"), action="store", default='None', type='character',
               help="String representing phenotype that will be used for GWAS comparison(s)."),
   make_option(c("--continuous_var_transformation"), action="store", default='log', type='character',
@@ -50,13 +49,12 @@ args = parse_args(OptionParser(option_list=option_list))
 input_cb_data                 = args$input_cb_data
 input_meta_data               = args$input_meta_data
 query_file                    = args$query_file
-sample_ids_file               = args$sample_ids_file
 phenoCol                      = args$phenoCol %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.") %>% 
                                                   str_replace_all("-[^-]+$", "")
 aggregation                   = args$continuous_var_aggregation
 transformation                = args$continuous_var_transformation
 id_column                     = args$id_column %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.")
-outprefix                     = paste0(args$output_tag, "_")
+outprefix                     = args$output_tag
 outdir                        = sub("/$","",args$outdir)
 
 system(paste0("mkdir -p ", outdir), intern=T)
@@ -83,9 +81,8 @@ cb_data = fread(input_cb_data) %>% as.tibble
 colnames(cb_data) = colnames(cb_data) %>% 
         to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.")
 
-# Remove columns full of NAs (empty string in CSV) & individuals without platekeys on vcfs
-samples_list = readLines(sample_ids_file)
-cb_data = cb_data %>% select_if(~!all(is.na(.))) %>% filter(!!as.symbol(id_column) %in% samples_list)
+# Remove columns full of NAs (empty string in CSV)
+cb_data = cb_data %>% select_if(~!all(is.na(.)))
 
 # Use phenotype metadata (data dictionary) to determine the type of each phenotype -> This will be given by CB
 pheno_dictionary = fread(input_meta_data) %>%
@@ -102,9 +99,12 @@ pheno_dictionary[[name_col]] = pheno_dictionary[[name_col]] %>%
 ##########################################################
 
 if (query_file != 'None'){
-    pheno_id = colnames(pheno_dictionary)[colnames(pheno_dictionary) == 'id']
+    print(head(pheno_dictionary))
+
+    pheno_id = colnames(pheno_dictionary)[colnames(pheno_dictionary) == 'field_id']
+    print(pheno_id)
     query_df = fromJSON(query_file, flatten=T)$search[, c('values','column.id')]
-    query_df = left_join(query_df, pheno_dictionary, by = c('column.id' = pheno_id),  suffix=c("_query", "_dict")) %>% select(values_query, name)
+    query_df = left_join(query_df, pheno_dictionary, by = c('column.id' = pheno_id),  suffix=c("_query", "_dict")) %>% select(values, !!as.symbol(name_col))
 }
 if (query_file == 'None'){
     query_df = 'None'
@@ -165,6 +165,10 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
             pheno_cols = pheno_cols[[1]] %>% as.vector()
             return(pheno_cols)
         }
+        if (str_detect(column, 'FID|doid|icd|hpo')){
+            pheno_cols = pheno_cols[[1]] %>% as.vector
+            return(pheno_cols)
+        }
         
         # Ensure all categorical are strings and lowercase
         pheno_cols = data.frame(lapply(pheno_cols, as.character), stringsAsFactors=FALSE)
@@ -185,11 +189,11 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
 
         }
         if (condition > 1 & query_df != 'None') {
-            query_df$name = query_df$name %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.")
-            if (sum(str_detect(query_df$name, column)) > 0){
+            query_df[[name_col]] = query_df[[name_col]] %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.")
+            if (sum(str_detect(query_df[[name_col]], column)) > 0){
                 # identify rows with queried values
-                query_values = query_df[str_detect(query_df$name, column),]
-                query_mask = apply(pheno_cols, 2, function(x) x %in% query_values$values_query)
+                query_values = query_df[str_detect(query_df[[name_col]], column),]
+                query_mask = apply(pheno_cols, 2, function(x) x %in% query_values$values)
                 # get the values that are in the query
                 values = sapply(1:dim(pheno_cols)[1], function(x) pheno_cols[x, query_mask[x,]])
                 # get the first entry for the list of values queried for each row with queried values 
@@ -199,10 +203,11 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
                 # Substitute the original first column by the new column of first encountered values
                 pheno_cols[[1]] = values
                 #Select the first column of values
+                print(pheno_cols)
                 pheno_cols = apply(pheno_cols, 1, function(x) x[1])
             }
             #Cannot make it flat because if query == 'None' it would break the pipeline
-            if(sum(str_detect(query_df$name, column)) == 0){
+            if(sum(str_detect(query_df[[name_col]], column)) == 0){
                 #when the column is not on the query file, just apply the standard filter -> take the first column
                 pheno_cols = apply(pheno_cols, 1, function(x) x[1])
             }
@@ -228,7 +233,7 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
     ################################   
     if ((str_detect(column,"birth") == TRUE)){
         # Transform year of birth into age
-        current_year = format(Sys.time(), "%Y") %>% as.integer
+        current_year = ymd(Sys.time()) %>% as.integer
         age = current_year - pheno_cols %>% as.vector()
         return(age)
     }
@@ -303,18 +308,22 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
     if (str_detect(pheno_dtype, 'Time|Date')){
         # Transform - turns it into a big integer
         # Fill empty gaps with current date
-        pheno_cols[pheno_cols == ''] = format(Sys.time(), "%Y-%m-%d")
-        pheno_cols[pheno_cols == NA] = format(Sys.time(), "%Y-%m-%d")
+        pheno_cols[pheno_cols == ''] = ymd(now() %>% date()) %>% as.character()
+        pheno_cols[pheno_cols == 'UNKNOWN'] = ymd(now() %>% date()) %>% as.character()
+
         ## Multiple array support
         if (dim(pheno_cols)[2] > 1) {
+            print(pheno_cols)
             # Turns the dates into a big integer
-            pheno_cols = apply(pheno_cols, 1, function(x) format(as.Date(x), "%Y%m%d") %>% as.integer)
+            pheno_cols = apply(pheno_cols, 1, function(x) parse_date_time(x, orders=c('dmy','ymd')) %>% as.character() %>% str_remove_all('-') %>% as.integer)
             # Aggregate - gets the first column - arbitrary
             pheno_cols = pheno_cols[1,]
         }
-        if (is.vector(pheno_cols) && length(dim(pheno_cols)) == 1) {
+        if (dim(pheno_cols)[2] == 1) {
+            print(pheno_cols[[1]])
             # If only one array, applies directly the transformation
-            pheno_cols = lapply(pheno_cols, function(x) format(as.Date(x), "%Y%m%d") %>% as.integer) %>% as.vector
+
+            pheno_cols = sapply(pheno_cols[[1]],  function(x) parse_date_time(x, orders=c('dmy','ymd')) %>% as.character() %>% str_remove_all('-') %>% as.integer) %>% as.vector
         }
         return(pheno_cols)
     }
@@ -359,11 +368,27 @@ cb_data_transformed$PHE = cb_data_transformed[[column_to_PHE]]
 donor_id_col = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'individual_id|eid')]
 cb_data_transformed[donor_id_col] = NULL
 
+##################################################
+# Write phenocode file  (if present)             #
+##################################################
+id_blacklist = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'platekey')]
+if (sum(str_detect(colnames(cb_data_transformed), 'icd|hpo|doid')) > 0){
+    code_df = cb_data_transformed[, str_detect(colnames(cb_data_transformed), 'FID|icd|hpo|doid')]
+    remove_cols = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'icd|hpo|doid')]
+    # Generate id_icd_count.csv
+    code_df = code_df %>% pivot_longer(!FID, names_to = "vocabulary", values_to = "code") %>% drop_na() %>% select(-vocabulary)
+    code_df$count = 3 # Do research about this column in particular
+    names(code_df)[1]="id"
+    write.table(code_df, paste0(out_path,'_id_code_count.csv'), sep=',',  quote=FALSE, row.names=FALSE)
+    cb_data_transformed = cb_data_transformed %>% select(FID, IID, MAT, PAT, PHE, everything(), -all_of(remove_cols))
+}
 
 ##################################################
 # Write .phe file                                #
 ##################################################
 
-cb_data_transformed = cb_data_transformed %>% select(FID, IID, PAT, MAT, PHE, everything(), -!!as.symbol(column_to_PHE), -!!as.symbol(id_column))
+cb_data_transformed = cb_data_transformed %>% select(FID, IID, PAT, MAT, PHE, everything(), -!!as.symbol(column_to_PHE), -!!as.symbol(id_column), -any_of(id_blacklist))
 ### FID, IID this has to be the platekey metadata -> Agg VCF columns. 
 write.table(cb_data_transformed, paste0(out_path,'.phe'), sep='\t',  quote=FALSE, row.names=FALSE)
+print('done')
+

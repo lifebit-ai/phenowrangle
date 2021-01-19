@@ -8,9 +8,17 @@ Two `.csv` files:
 - **CB phenotypic data:** Contains columns selected by user with all respective measurements
 - **CB metadata for phenotypes:** Contains information about the columns
 
+One optional `.json`:
+
+- **Query** Contains information about the filtering to be done
+
 These two files need to be passed to the pipeline in order to make it work.
 
-## 2. Aggregation & Transformation
+## 2. Queries
+
+All columns (except `HPO`, `ICD`, `DOID`) are susceptible of querying. Phenocode columns are not being queried as they are not supported by the current implementation of the querying. The reasoning behind this is whether a phenotype is relevant or not for the pheWAS or related analysis. There's still the possibility of filtering out phenotypes from the `id_code_count` file by simply filtering the desired values.
+
+## 3. Aggregation & Transformation
 
 Adds a script that takes the phenotypic data and metadata associated and performs the following tasks:
 
@@ -23,15 +31,16 @@ Adds a script that takes the phenotypic data and metadata associated and perform
     - If NAs are present across arrays the aggregation will ignore them when computing the aggregation.
   - Dates and Time -> transforms them into `YYYYMMDD` integer which can be used as covariates
   - Text -> Removes free text
-- Generates `.phe` file for GWAS
+- Generates `.phe` file
+- If phenocodes are present it will also generate the `id_code_count` file in `csv` format
 
 Note: It doesn't assume that sex comes from any column in particular. If present it will be kept as a covariate for GWAS and transformed as any other categorical variable.
 
-## 3. Multiple design matrices
+## 4. Multiple design matrices
 
   Given a categorical phenotype, explores all the potential combinations of interest for users in terms of contrasts to be run. Different scenarios to consider. By convention 1=case, 0=control
 
-### 3.1 - Possible scenarios
+### 5.1 - Possible scenarios
 
 || Description | Needs | Added value |
 |--|--|--|--|

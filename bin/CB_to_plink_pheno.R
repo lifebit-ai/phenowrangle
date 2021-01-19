@@ -104,7 +104,9 @@ if (query_file != 'None'){
     pheno_id = colnames(pheno_dictionary)[colnames(pheno_dictionary) == 'field_id']
     print(pheno_id)
     query_df = fromJSON(query_file, flatten=T)$search[, c('values','column.id')]
-    query_df = left_join(query_df, pheno_dictionary, by = c('column.id' = pheno_id),  suffix=c("_query", "_dict")) %>% select(values, !!as.symbol(name_col))
+    query_df = left_join(query_df, pheno_dictionary, by = c('column.id' = pheno_id),  suffix=c("_query", "_dict"))
+    value_col = colnames(query_df)[str_detect(colnames(query_df), 'values')][1]
+    query_df = query_df %>% select(!!as.symbol(value_col), !!as.symbol(name_col))
 }
 if (query_file == 'None'){
     query_df = 'None'
@@ -189,11 +191,12 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
 
         }
         if (condition > 1 & query_df != 'None') {
+            value_col = colnames(query_df)[str_detect(colnames(query_df), 'values')][1]
             query_df[[name_col]] = query_df[[name_col]] %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.")
             if (sum(str_detect(query_df[[name_col]], column)) > 0){
                 # identify rows with queried values
                 query_values = query_df[str_detect(query_df[[name_col]], column),]
-                query_mask = apply(pheno_cols, 2, function(x) x %in% query_values$values)
+                query_mask = apply(pheno_cols, 2, function(x) x %in% query_values[[value_col]])
                 # get the values that are in the query
                 values = sapply(1:dim(pheno_cols)[1], function(x) pheno_cols[x, query_mask[x,]])
                 # get the first entry for the list of values queried for each row with queried values 

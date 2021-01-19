@@ -14,7 +14,7 @@ In order to use this pipeline for plink, you can run the following example:
 
 ```bash
 nextflow run main.nf \
-  --mode "gwas" \
+  --mode "plink" \
   --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
   --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
   --continuous_var_aggregation "mean" \
@@ -23,28 +23,26 @@ nextflow run main.nf \
   --design_mode 'case_vs_control_contrast' \
   --case_group "NOSE" \
   --trait_type "binary" \
-  --vcfs_list "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/vcfs.csv"
 ```
 
 #### plink Quantitative
 
 ```bash
 nextflow run main.nf \
-  --mode "gwas" \
+  --mode "plink" \
   --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
   --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
   --continuous_var_aggregation "mean" \
   --continuous_var_transformation "log" \
   --pheno_col "Height (HCM)" \
   --trait_type "quantitative" \
-  --vcfs_list "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/vcfs.csv"
 ```
 
 ### plink pheWAS
 
 ```bash
 nextflow run main.nf \
-                     --mode 'phewas'
+                     --mode 'plink'
                      --phenofile "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
                      --metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
                      --continuous_var_aggregation "mean" \
@@ -53,8 +51,6 @@ nextflow run main.nf \
                      --case_group "NOSE" \
                      --trait_type "binary" \
                      --design_mode "case_vs_control_contrast" \
-                     --pheno_codes "icd10"
-
 ```
 
 ## 1 - Parameters

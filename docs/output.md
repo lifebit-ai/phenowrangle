@@ -12,8 +12,8 @@ The directories listed below will be created in the results directory after the 
 
 - `<mappings>.json/.csv` .json/.csv file containing mappings between encodings and original values.
 - `<filename>.phe` file containing transformed phenotypic data.
-- `samples_id.txt` file containing list of samples present in genomic data.
+- `id_code_count.csv` file containing long format of phenocode per sample and count.
 
-`constrasts` folder containing:
+`contrasts` folder containing:
 
 - `<filename>.phe` Constrasts produced by pipeline when trait_type is 'binary'

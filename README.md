@@ -17,7 +17,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
     ```bash
-    nextflow run lifebit-ai/phenowrangle -profile binary
+    nextflow run lifebit-ai/phenowrangle -profile plink_binary
     ```
 
 4. Start running your own analysis!
@@ -25,7 +25,15 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
     <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
 
     ```bash
-    nextflow run lifebit-ai/phenowrangle --input_file '<path to file>' --post_analysis 'heritability' --hapmap3_snplist '<path to file>' --ld_scores_tar_bz2 "<path to tar.bz2 file with LD scores>"
+    nextflow run main.nf --mode "plink" \
+                        --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
+                        --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                        --continuous_var_aggregation "mean" \
+                        --continuous_var_transformation "zscore" \
+                        --pheno_col "Specimen type" \
+                        --design_mode 'case_vs_control_contrast' \
+                        --case_group "NOSE" \
+                        --trait_type "binary" \
     ```
 
 See [usage docs](docs/usage.md) for all of the available options when running the pipeline.

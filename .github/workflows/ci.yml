@@ -20,7 +20,7 @@ jobs:
           sudo mv nextflow /usr/local/bin/
       - name: Binary plink
         run: |
-          nextflow run ${GITHUB_WORKSPACE} --design_mode ${{ matrix.design_mode }} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile gwas_binary
+          nextflow run ${GITHUB_WORKSPACE} --design_mode ${{ matrix.design_mode }} --continuous_var_transformation ${{ matrix.continuous_var_transformation }}  --continuous_var_aggregation ${{ matrix.continuous_var_aggregation }} -profile plink_binary
   plink_qt:
     runs-on: ubuntu-latest
     strategy:

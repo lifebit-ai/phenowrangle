@@ -99,10 +99,7 @@ pheno_dictionary[[name_col]] = pheno_dictionary[[name_col]] %>%
 ##########################################################
 
 if (query_file != 'None'){
-    print(head(pheno_dictionary))
-
     pheno_id = colnames(pheno_dictionary)[colnames(pheno_dictionary) == 'field_id']
-    print(pheno_id)
     query_df = fromJSON(query_file, flatten=T)$search[, c('values','column.id')]
     query_df = left_join(query_df, pheno_dictionary, by = c('column.id' = pheno_id),  suffix=c("_query", "_dict"))
     value_col = colnames(query_df)[str_detect(colnames(query_df), 'values')][1]
@@ -193,7 +190,7 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
         if (condition > 1 & query_df != 'None') {
             value_col = colnames(query_df)[str_detect(colnames(query_df), 'values')][1]
             query_df[[name_col]] = query_df[[name_col]] %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.")
-            if (sum(str_detect(query_df[[name_col]], column)) > 0){
+            if (column %in% query_df[[name_col]]){
                 # identify rows with queried values
                 query_values = query_df[str_detect(query_df[[name_col]], column),]
                 query_mask = apply(pheno_cols, 2, function(x) x %in% query_values[[value_col]])
@@ -210,7 +207,7 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
                 pheno_cols = apply(pheno_cols, 1, function(x) x[1])
             }
             #Cannot make it flat because if query == 'None' it would break the pipeline
-            if(sum(str_detect(query_df[[name_col]], column)) == 0){
+            if(!column %in% query_df[[name_col]]){
                 #when the column is not on the query file, just apply the standard filter -> take the first column
                 pheno_cols = apply(pheno_cols, 1, function(x) x[1])
             }
@@ -236,7 +233,7 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
     ################################   
     if ((str_detect(column,"birth") == TRUE)){
         # Transform year of birth into age
-        current_year = ymd(Sys.time()) %>% as.integer
+        current_year = year(Sys.time()) %>% as.integer
         age = current_year - pheno_cols %>% as.vector()
         return(age)
     }

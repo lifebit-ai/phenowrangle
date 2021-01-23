@@ -39,7 +39,7 @@ Create `~/.cloudos/` before starting working with the R-pkg:
 mkdir -p ~/.cloudos/
 ```
 
-## Code example:
+## Code example
 
 ```R
 library(cloudos)

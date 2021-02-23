@@ -37,6 +37,7 @@ def helpMessage() {
     --trait_type                     Type of regression being executed: 'binary' or 'quantitative'
     --output_tag                     String with tag for files
     --outdir                         Path to output directory. Defaults to './results'
+    --phewas                         Flag to activate phewas switching of pheno column from [0-1] to [1-2]
     """.stripIndent()
 }
 
@@ -78,6 +79,7 @@ summary['continuous_var_aggregation']     = params.continuous_var_aggregation
 summary['trait_type']                     = params.trait_type
 summary['output_tag']                     = params.output_tag
 summary['outdir']                         = params.outdir
+summary['phewas']                         = params.phewas
 
 log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
 log.info "-\033[2m--------------------------------------------------\033[0m-"
@@ -86,7 +88,7 @@ log.info "-\033[2m--------------------------------------------------\033[0m-"
   Channel preparation
 ---------------------------------------------------*/
 
-ch_query =  params.query ? Channel.value(file(params.query)) : "None"
+ch_query =  params.query ? Channel.value(file(params.query)) : false
 ch_pheno_data = params.pheno_data ? Channel.value(file(params.pheno_data)) : Channel.empty()
 ch_pheno_metadata = params.pheno_metadata ? Channel.value(file(params.pheno_metadata)) : Channel.empty()
 
@@ -149,7 +151,7 @@ if (params.trait_type == 'binary' && params.case_group && params.design_mode != 
     file(json) from ch_encoding_json
 
     output:
-    file("${params.output_tag}_design_matrix_control_*.phe") into (phenoCh_gwas_filtering, phenoCh)
+    file("${params.output_tag}_design_matrix_control_*.phe") into phenoCh
 
     script:
     """
@@ -178,7 +180,7 @@ if (params.trait_type == 'binary' && params.design_mode == 'all_contrasts') {
     file(json) from ch_encoding_json
 
     output:
-    file("${params.output_tag}_design_matrix_control_*.phe") into (phenoCh_gwas_filtering, phenoCh)
+    file("${params.output_tag}_design_matrix_control_*.phe") into phenoCh
 
     script:
     """
@@ -191,6 +193,30 @@ if (params.trait_type == 'binary' && params.design_mode == 'all_contrasts') {
                     --outdir . \
                     --output_tag ${params.output_tag} \
                     --phenoCol "${params.pheno_col}"
+                      
+    """
+  }
+}
+
+if (params.phewas){
+  process pheno_to_phewas{
+    tag "$name"
+    publishDir "${params.outdir}/phewas", mode: 'copy'
+
+    input:
+    file(pheFile) from phenoCh
+    
+
+    output:
+    file("${params.output_tag}_design_matrix_control_*_phewas.phe") into (phewasCh)
+
+    script:
+    """
+    cp /opt/bin/* .
+
+    mkdir -p ${params.outdir}/phewas
+
+    pheno_to_phewas.R --input_pheno ${pheFile}
                       
     """
   }

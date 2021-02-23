@@ -43,14 +43,15 @@ nextflow run main.nf \
 ```bash
 nextflow run main.nf \
                      --mode 'plink'
-                     --phenofile "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
-                     --metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                     --pheno_data "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
+                     --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
                      --continuous_var_aggregation "mean" \
                      --continuous_var_transformation "log10" \
                      --pheno_col "Specimen type" \
                      --case_group "NOSE" \
                      --trait_type "binary" \
                      --design_mode "case_vs_control_contrast" \
+                     --phewas
 ```
 
 ## 1 - Parameters
@@ -71,5 +72,6 @@ nextflow run main.nf \
 - **--continuous_var_transformation** : Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
 - **--continuous_var_aggregation** : Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
 - **--trait_type** : Type of regression being executed: 'binary' or 'quantitative'
+- **--phewas** : Transform data to phewas required format.
 - **--output_tag** : String with tag for files
 - **--outdir** : Path to output directory. Defaults to './results'

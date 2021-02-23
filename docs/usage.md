@@ -42,7 +42,7 @@ nextflow run main.nf \
 
 ```bash
 nextflow run main.nf \
-                     --mode 'plink'
+                     --mode 'plink' \
                      --pheno_data "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
                      --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
                      --continuous_var_aggregation "mean" \

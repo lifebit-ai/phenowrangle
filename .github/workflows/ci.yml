@@ -60,7 +60,7 @@ jobs:
         with:
           name: phewas_input
           path: results/
-          retention-days: 5
+          retention-days: 1
   run_phenowrangle_phewas:
     needs: plink_phewas
     runs-on: ubuntu-latest
@@ -80,4 +80,4 @@ jobs:
           name: phewas_input
       - name: run phewas pipeline
         run: |
-          nextflow run lifebit-ai/phewas -r decoupling-phenowrangle --input_phenofile phewas_input/phewas/traits_design_matrix_control_all_case_1_phewas.phe --input_id_code_count phewas_input/design_matrix/traits_id_code_count.csv --plink_input "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/sampleA.{bed,bim,fam}" --pheno_codes icd10
+          nextflow run lifebit-ai/phewas -r decoupling-phenowrangle --input_phenofile phewas/traits_design_matrix_control_all_case_1_phewas.phe --input_id_code_count design_matrix/traits_id_code_count.csv --plink_input "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/sampleA.{bed,bim,fam}" --pheno_codes icd10

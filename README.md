@@ -1,8 +1,8 @@
-# `lifebit-ai/traits`
+# `lifebit-ai/phenowrangle`
 
-**Workflow for collecting genetic traits information (heritability, genetic correlation) from GWAS summary statistics**.
+**Workflow for processing phenotypic information from CB**.
 
-[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A519.10.0-brightgreen.svg)](https://www.nextflow.io/) [![Docker](https://img.shields.io/docker/automated/lifebit-ai/traits.svg)](https://hub.docker.com/r/lifebit-ai/traits)
+[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A519.10.0-brightgreen.svg)](https://www.nextflow.io/) [![Docker](https://img.shields.io/docker/automated/lifebit-ai/phenowrangle.svg)](https://hub.docker.com/r/lifebit-ai/phenowrangle)
 
 ## Introduction
 
@@ -17,7 +17,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
     ```bash
-    nextflow run lifebit-ai/traits -profile binary_h2
+    nextflow run lifebit-ai/phenowrangle -profile plink_binary
     ```
 
 4. Start running your own analysis!
@@ -25,31 +25,39 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
     <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
 
     ```bash
-    nextflow run lifebit-ai/traits --input_file '<path to file>' --post_analysis 'heritability' --hapmap3_snplist '<path to file>' --ld_scores_tar_bz2 "<path to tar.bz2 file with LD scores>"
+    nextflow run main.nf --mode "plink" \
+                        --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
+                        --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                        --continuous_var_aggregation "mean" \
+                        --continuous_var_transformation "zscore" \
+                        --pheno_col "Specimen type" \
+                        --design_mode 'case_vs_control_contrast' \
+                        --case_group "NOSE" \
+                        --trait_type "binary" \
     ```
 
 See [usage docs](docs/usage.md) for all of the available options when running the pipeline.
 
 ## Documentation
 
-The lifebit-ai/traits pipeline comes with documentation about the pipeline which you can read at [https://lifebit-ai/traits/docs](https://lifebit-ai/traits/docs) or find in the [`docs/` directory](docs).
+The lifebit-ai/phenowrangle pipeline comes with documentation about the pipeline which you can read at [https://lifebit-ai/phenowrangle/docs](https://lifebit-ai/phenowrangle/docs) or find in the [`docs/` directory](docs).
 
 <!-- TODO nf-core: Add a brief overview of what the pipeline does and how it works -->
 
 ## Credits
 
-`lifebit-ai/traits` was originally written by Marcos Cámara Donoso, Christina Chatzipantsiou, Athanasios Kousathanas.
+`lifebit-ai/phenowrangle` was originally written by Marcos Cámara Donoso & Christina Chatzipantsiou.
 
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
-> **NOTE**: This pipeline was created using the nf-core template.  For further information or help with nf-core pipelines, you can get in touch with the core developers and community on [Slack](https://nfcore.slack.com/channels/lifebit-ai/traits) (you can join with [this invite](https://nf-co.re/join/slack)).
+> **NOTE**: This pipeline was created using the nf-core template.  For further information or help with nf-core pipelines, you can get in touch with the core developers and community on [Slack](https://nfcore.slack.com/channels/lifebit-ai/phenowrangle) (you can join with [this invite](https://nf-co.re/join/slack)).
 
 ## Citation
 
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi. -->
-<!-- If you use  lifebit-ai/traits for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
+<!-- If you use  lifebit-ai/phenowrangle for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
 
 You can cite the `nf-core` publication as follows:
 

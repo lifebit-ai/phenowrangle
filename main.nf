@@ -1,11 +1,11 @@
 #!/usr/bin/env nextflow
 /*
 ========================================================================================
-                         lifebit-ai/traits
+                         lifebit-ai/phenowrangle
 ========================================================================================
- lifebit-ai/traits Analysis Pipeline.
+ lifebit-ai/phenowrangle Data Preparation Pipeline.
  #### Homepage / Documentation
- https://github.com/lifebit-ai/traits
+ https://github.com/lifebit-ai/phenowrangle
 ----------------------------------------------------------------------------------------
 */
 
@@ -19,20 +19,25 @@ def helpMessage() {
     
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run main.nf --post_analysis heritability --input_file 
+    nextflow run main.nf --mode plink --pheno_data <S3/URL/PATH> --pheno_metadata <S3/URL/PATH>
+    
     Essential parameters:
-    --post_analysis                  Type of analysis desired. Options are 'heritability' or 'genetic_correlation_h2'
-    --input_file                     path to summary statistics from gwas. Currently compatible with SAIGE
+    --mode                           String containing type of desired output. Accepts 'plink'.
+    --pheno_data                     Path to CSV file containing the phenotypic data to be used.
+    --pheno_metadata                 Path to CSV containing metadata about the phenotypic variables. This helps the scripts to identify the schema and decide which transformation corresponds to each variable.
     
     Optional parameters:
-    --gwas_summary                   Path to second summary statistics to be used for genetic correlation                     
-    --gwas_cat_study_id              String containing GWAS catalogue study id
-    --gwas_cat_study_size            Integer describing size of GWAS study
-    --gwas_catalogue_ftp             Path to csv containing ftp locations of gwas catalogue files
-    --hapmap3_snplist                Path to SNP list from Hapmap needed for seleting SNPs considered for analysis
-    --ld_scores_tar_bz2              Path to tar.bz2 files with precomputed LD scores
-    --outdir                         Path to output directory
-    --output_tag                     String containing output tag
+    --id_column                      String defining the name of the ID column. Defaults to `Platekey_in_aggregate_VCF-0.0`    --gwas_cat_study_id              String containing GWAS catalogue study id
+    --pheno_col                      Named of the phenotypic column of interest. Required for GWAS and pipelines requiring contrasts/regression.
+    --query                          Path to file containing query resulting from filtering data in the CB.
+    --design_mode                    String containing the type of design matrix wanted to be produced
+    --case_group                     String containing the case group for the desired contrasts. 
+    --continuous_var_transformation  Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
+    --continuous_var_aggregation     Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
+    --trait_type                     Type of regression being executed: 'binary' or 'quantitative'
+    --output_tag                     String with tag for files
+    --outdir                         Path to output directory. Defaults to './results'
+    --phewas                         Flag to activate phewas switching of pheno column from [0-1] to [1-2]
     """.stripIndent()
 }
 
@@ -61,16 +66,20 @@ summary['Working dir']                    = workflow.workDir
 summary['Script dir']                     = workflow.projectDir
 summary['User']                           = workflow.userName
 
-summary['post_analysis']                  = params.post_analysis
-summary['input_file']                     = params.input_file
-summary['gwas_summary']                   = params.gwas_summary
-summary['gwas_cat_study_id']              = params.gwas_cat_study_id
-summary['gwas_cat_study_size']            = params.gwas_cat_study_size
-summary['gwas_catalogue_ftp']             = params.gwas_catalogue_ftp
-summary['hapmap3_snplist']                = params.hapmap3_snplist
-summary['ld_scores_tar_bz2']              = params.ld_scores_taR_bz2
+summary['mode']                           = params.mode
+summary['pheno_data']                     = params.pheno_data
+summary['pheno_metadata']                 = params.pheno_metadata
+summary['id_column']                      = params.id_column
+summary['pheno_col']                      = params.pheno_col
+summary['query']                          = params.query
+summary['design_mode']                    = params.design_mode
+summary['case_group']                     = params.case_group
+summary['continuous_var_transformation']  = params.continuous_var_transformation
+summary['continuous_var_aggregation']     = params.continuous_var_aggregation
+summary['trait_type']                     = params.trait_type
 summary['output_tag']                     = params.output_tag
 summary['outdir']                         = params.outdir
+summary['phewas']                         = params.phewas
 
 log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
 log.info "-\033[2m--------------------------------------------------\033[0m-"
@@ -79,255 +88,138 @@ log.info "-\033[2m--------------------------------------------------\033[0m-"
   Channel preparation
 ---------------------------------------------------*/
 
-ch_ldsc_input = params.input_file ? Channel.value(file(params.input_file)) : Channel.empty()
-ch_hapmap3_snplist =  params.hapmap3_snplist ? Channel.value(file(params.hapmap3_snplist)) :  "null"
-ch_ld_scores_tar_bz2 =  params.ld_scores_tar_bz2 ? Channel.value(file(params.ld_scores_tar_bz2)) :  "null"
-ch_gwas_summary = params.gwas_summary ? Channel.value(file(params.gwas_summary)) : Channel.empty()
+ch_query =  params.query ? Channel.value(file(params.query)) : false
+ch_pheno_data = params.pheno_data ? Channel.value(file(params.pheno_data)) : Channel.empty()
+ch_pheno_metadata = params.pheno_metadata ? Channel.value(file(params.pheno_metadata)) : Channel.empty()
 
 /*--------------------------------------------------
-  LDSC - Genetic correlation and heritability
+  Transform CB to plink phenofile data &
 ---------------------------------------------------*/
-if (params.post_analysis == 'heritability' || params.post_analysis == 'genetic_correlation_h2'){
-  process prepare_files_ldsc {
-    tag "preparation_files"
-    publishDir "${params.outdir}/ldsc_inputs/", mode: 'copy'
 
-    input:
-    file(summary_stats) from ch_ldsc_input
+if (params.mode == 'plink'){
 
-    output:
-    file("${params.output_tag}_transformed_gwas_stats.txt") into ch_ldsc_input2
+  //*  Ingest output from CB
 
-    script:
+    process transforms_cb_to_plink {
+      tag "$name"
+      publishDir "${params.outdir}/design_matrix", mode: 'copy'
 
-    """
-    convert_output.R \
-      --gwas_stats "$summary_stats" \
-      --output_tag ${params.output_tag}
-    """
-  }
-  process munge_saige_output {
-    tag "munge_saige_output"
-    publishDir "${params.outdir}/ldsc_inputs/", mode: 'copy'
+      input:
+      file(pheno_data) from ch_pheno_data
+      file(pheno_metadata) from ch_pheno_metadata
+      file(query_file) from ch_query
 
-    input:
-    file(saige_summary_stats) from ch_ldsc_input2
-    file(hapmap3_snplist) from ch_hapmap3_snplist
+      output:
+      file("${params.output_tag}.phe") into ch_transform_cb
+      file("*.json") into ch_encoding_json
+      file("*.csv") into ch_encoding_csv
+      file("*id_code_count.csv") optional true into codes_pheno
 
-    output:
-    file("${params.output_tag}_ldsc.sumstats.gz") into ch_saige_ldsc
+      script:
+      """
+      cp /opt/bin/* .
 
-    script:
-
-    """
-    munge_sumstats.py --sumstats $saige_summary_stats \
-                      --out "${params.output_tag}_ldsc" \
-                      --merge-alleles $hapmap3_snplist \
-                      --a1 Allele1 \
-                      --a2 Allele2 \
-                      --signed-sumstats BETA,0 \
-                      --p p.value \
-                      --snp SNPID \
-                      --info inputationInfo
-    """
-  }
-}
-
-if (params.post_analysis == 'heritability'){
-
-  process heritability {
-    tag "heritability"
-    publishDir "${params.outdir}/heritability/", mode: 'copy'
-
-    input:
-    file(saige_output) from ch_saige_ldsc
-    file(ld_scores_tar_bz2) from ch_ld_scores_tar_bz2
-
-    output:
-    file("${params.output_tag}_h2.log") into ch_ldsc_report_input
-
-    script:
-    """
-    tar -xvjf ${ld_scores_tar_bz2}
-
-    ldsc.py \
-      --h2 $saige_output \
-      --ref-ld-chr ${ld_scores_tar_bz2.simpleName}/ \
-      --w-ld-chr ${ld_scores_tar_bz2.simpleName}/ \
-      --out ${params.output_tag}_h2
-    """
-  }
-}
-
-if (params.post_analysis == 'genetic_correlation_h2' && params.gwas_summary){
-  process prepare_gwas_summary_ldsc {
-    tag "preparation_gwas_summary_ldsc"
-    publishDir "${params.outdir}/ldsc_inputs/", mode: 'copy'
-
-    input:
-    file(gwas_summary_file) from ch_gwas_summary
-
-    output:
-    file("${gwas_summary_file.simpleName}_transformed_gwas_stats.txt") into ch_gwas_summary_ldsc
-
-    script:
-
-    """
-    convert_output.R \
-      --gwas_stats "$gwas_summary_file" \
-      --output_tag "${gwas_summary_file.simpleName}"
-    """
-  }
-  //* Munge gwas stats
-
-  process munge_gwas_summary {
-    tag "munge_gwas_summary"
-    publishDir "${params.outdir}/ldsc_inputs/", mode: 'copy'
-
-    input:
-    file(summary_stats) from ch_gwas_summary_ldsc
-    file(hapmap3_snplist) from ch_hapmap3_snplist
-
-    output:
-    file("${summary_stats.simpleName}_gwas_summary.sumstats.gz") into ch_gwas_summary_ldsc2
-
-    script:
-
-    """
-    munge_sumstats.py \
-          --sumstats "$summary_stats" \
-          --out "${summary_stats.simpleName}_gwas_summary" \
-          --merge-alleles $hapmap3_snplist
-    """
-  }
-
-  //* Run genetic correlation
-  process genetic_correlation_h2 {
-    tag "genetic_correlation_h2"
-    publishDir "${params.outdir}/genetic_correlation/", mode: 'copy'
-
-    input:
-    file(gwas_summary_ldsc) from ch_gwas_summary_ldsc2
-    file(saige_ldsc) from ch_saige_ldsc
-    file(ld_scores_tar_bz2) from ch_ld_scores_tar_bz2
-
-    output:
-    file("${params.output_tag}_genetic_correlation.log") into ch_ldsc_report_input
-
-    script:
-
-    """
-    tar -xvjf ${ld_scores_tar_bz2}
-
-    ldsc.py \
-          --rg $saige_ldsc,$gwas_summary_ldsc \
-          --ref-ld-chr ${ld_scores_tar_bz2.simpleName}/ \
-          --w-ld-chr ${ld_scores_tar_bz2.simpleName}/ \
-          --out ${params.output_tag}_genetic_correlation \
-          --no-intercept
-    """
-  }
-
-}
-
- //* gwas catalogue
-
-if (params.post_analysis == 'genetic_correlation_h2' && params.gwas_cat_study_id){
-
-  gwas_catalogue_ftp_ch = Channel.fromPath(params.gwas_catalogue_ftp, checkIfExists: true)
-    .ifEmpty { exit 1, "GWAS catalogue ftp locations not found: ${params.gwas_catalogue_ftp}" }
-    .splitCsv(header: true)
-    .map { row -> tuple(row.study_accession, row.ftp_link_harmonised_summary_stats) }
-    .filter{ it[0] == params.gwas_cat_study_id}
-    .ifEmpty { exit 1, "The GWAS study accession number you provided does not come as a harmonized dataset that can be used as a base cohort "}
-    .flatten()
-    .last()
-
-  process download_gwas_catalogue {
-    label "high_memory"
-    publishDir "${params.outdir}/GWAS_cat", mode: "copy"
-    
-    input:
-    val(ftp_link) from gwas_catalogue_ftp_ch
-    
-    output:
-    file("*.h.tsv*") into downloaded_gwas_catalogue_ch
-    
-    script:
-    """
-    wget ${ftp_link}
-    """
-  }
-
-  process transform_gwas_catalogue {
-    label "high_memory"
-    publishDir "${params.outdir}/GWAS_cat", mode: "copy"
-    
-    input:
-    file gwas_catalogue_base from downloaded_gwas_catalogue_ch
-    
-    output:
-    file("${params.gwas_cat_study_id}.data") into transformed_base_ch
-    
-    script:
-    """
-    transform_gwas_catalogue.R --input_gwas_cat "${gwas_catalogue_base}" \
-                               --outprefix "${params.gwas_cat_study_id}"
-    """
+      mkdir -p ${params.outdir}/design_matrix
+      
+      CB_to_plink_pheno.R --input_cb_data "$pheno_data" \
+                            --input_meta_data "$pheno_metadata" \
+                            --phenoCol "${params.pheno_col}" \
+                            --query_file "${query_file}" \
+                            --continuous_var_transformation "${params.continuous_var_transformation}" \
+                            --continuous_var_aggregation "${params.continuous_var_aggregation}" \
+                            --outdir "." \
+                            --output_tag "${params.output_tag}"
+      """
     }
+}
 
-  
-  //* Munge gwas cat stats
 
-  process munge_gwas_cat_summary {
-    tag "munge_gwas_summary"
-    publishDir "${params.outdir}/ldsc_inputs/", mode: 'copy'
 
-    input:
-    file(summary_stats) from transformed_base_ch
-    file(hapmap3_snplist) from ch_hapmap3_snplist
 
-    output:
-    file("${params.gwas_cat_study_id}_gwas_summary.sumstats.gz") into ch_gwas_summary_ldsc2
+/*--------------------------------------------------
+  Design matrix generation for contrasts
+---------------------------------------------------*/
 
-    script:
-
-    """
-    munge_sumstats.py \
-          --sumstats "$summary_stats" \
-          --out "${params.gwas_cat_study_id}_gwas_summary" \
-          --merge-alleles $hapmap3_snplist \
-          --signed-sumstats BETA,0 \
-          --N ${params.gwas_cat_study_size}
-    """
-  }
-
-  //* Run genetic correlation
-  process genetic_correlation_h2_gwas_cat {
-    tag "genetic_correlation_h2"
-    publishDir "${params.outdir}/genetic_correlation/", mode: 'copy'
+//TODO: Check this later and finish it with the processes 
+if (params.trait_type == 'binary' && params.case_group && params.design_mode != 'all_contrasts') {
+  process add_design_matrix_case_group {
+    tag "$name"
+    publishDir "${params.outdir}/contrasts", mode: 'copy'
 
     input:
-    file(gwas_summary_ldsc) from ch_gwas_summary_ldsc2
-    file(saige_ldsc) from ch_saige_ldsc
-    file(ld_scores_tar_bz2) from ch_ld_scores_tar_bz2
+    file(pheFile) from ch_transform_cb
+    file(json) from ch_encoding_json
 
     output:
-    file("${params.output_tag}_genetic_correlation.log") into ch_ldsc_report_input
+    file("${params.output_tag}_design_matrix_control_*.phe") into phenoCh
 
     script:
     """
-    tar -xvjf ${ld_scores_tar_bz2}
+    cp /opt/bin/* .
 
-    ldsc.py \
-          --rg $saige_ldsc,$gwas_summary_ldsc \
-          --ref-ld-chr ${ld_scores_tar_bz2.simpleName}/ \
-          --w-ld-chr ${ld_scores_tar_bz2.simpleName}/ \
-          --out ${params.output_tag}_genetic_correlation \
-          --no-intercept
+    mkdir -p ${params.outdir}/contrasts
+
+    create_design.R --input_file ${pheFile} \
+                    --mode "${params.design_mode}" \
+                    --case_group "${params.case_group}" \
+                    --outdir . \
+                    --output_tag ${params.output_tag} \
+                    --phenoCol "${params.pheno_col}"
+                      
     """
   }
+}
 
+if (params.trait_type == 'binary' && params.design_mode == 'all_contrasts') {
+  process add_design_matrix_all{
+    tag "$name"
+    publishDir "${params.outdir}/contrasts", mode: 'copy'
+
+    input:
+    file(pheFile) from ch_transform_cb
+    file(json) from ch_encoding_json
+
+    output:
+    file("${params.output_tag}_design_matrix_control_*.phe") into phenoCh
+
+    script:
+    """
+    cp /opt/bin/* .
+
+    mkdir -p ${params.outdir}/contrasts
+
+    create_design.R --input_file ${pheFile} \
+                    --mode "${params.design_mode}" \
+                    --outdir . \
+                    --output_tag ${params.output_tag} \
+                    --phenoCol "${params.pheno_col}"
+                      
+    """
+  }
+}
+
+if (params.phewas){
+  process pheno_to_phewas{
+    tag "$name"
+    publishDir "${params.outdir}/phewas", mode: 'copy'
+
+    input:
+    file(pheFile) from phenoCh
+    
+
+    output:
+    file("${params.output_tag}_design_matrix_control_*_phewas.phe") into (phewasCh)
+
+    script:
+    """
+    cp /opt/bin/* .
+
+    mkdir -p ${params.outdir}/phewas
+
+    pheno_to_phewas.R --input_pheno ${pheFile}
+                      
+    """
+  }
 }
 
 
@@ -337,9 +229,9 @@ if (params.post_analysis == 'genetic_correlation_h2' && params.gwas_cat_study_id
 workflow.onComplete {
 
     // Set up the e-mail variables
-    def subject = "[lifebit-ai/traits] Successful: $workflow.runName"
+    def subject = "[lifebit-ai/phenowrangle] Successful: $workflow.runName"
     if (!workflow.success) {
-        subject = "[lifebit-ai/traits] FAILED: $workflow.runName"
+        subject = "[lifebit-ai/phenowrangle] FAILED: $workflow.runName"
     }
     def email_fields = [:]
     email_fields['version'] = workflow.manifest.version
@@ -371,12 +263,12 @@ workflow.onComplete {
         if (workflow.success) {
             mqc_report = ch_multiqc_report.getVal()
             if (mqc_report.getClass() == ArrayList) {
-                log.warn "[lifebit-ai/traits] Found multiple reports from process 'multiqc', will use only one"
+                log.warn "[lifebit-ai/phenowrangle] Found multiple reports from process 'multiqc', will use only one"
                 mqc_report = mqc_report[0]
             }
         }
     } catch (all) {
-        log.warn "[lifebit-ai/traits] Could not attach MultiQC report to summary email"
+        log.warn "[lifebit-ai/phenowrangle] Could not attach MultiQC report to summary email"
     }
 
     // Check if we are only sending emails on failure
@@ -408,7 +300,7 @@ workflow.onComplete {
             if (params.plaintext_email) { throw GroovyException('Send plaintext e-mail, not HTML') }
             // Try to send HTML e-mail using sendmail
             [ 'sendmail', '-t' ].execute() << sendmail_html
-            log.info "[lifebit-ai/traits] Sent summary e-mail to $email_address (sendmail)"
+            log.info "[lifebit-ai/phenowrangle] Sent summary e-mail to $email_address (sendmail)"
         } catch (all) {
             // Catch failures and try with plaintext
             def mail_cmd = [ 'mail', '-s', subject, '--content-type=text/html', email_address ]
@@ -416,7 +308,7 @@ workflow.onComplete {
               mail_cmd += [ '-A', mqc_report ]
             }
             mail_cmd.execute() << email_html
-            log.info "[lifebit-ai/traits] Sent summary e-mail to $email_address (mail)"
+            log.info "[lifebit-ai/phenowrangle] Sent summary e-mail to $email_address (mail)"
         }
     }
 
@@ -442,10 +334,10 @@ workflow.onComplete {
     }
 
     if (workflow.success) {
-        log.info "-${c_purple}[lifebit-ai/traits]${c_green} Pipeline completed successfully${c_reset}-"
+        log.info "-${c_purple}[lifebit-ai/phenowrangle]${c_green} Pipeline completed successfully${c_reset}-"
     } else {
         checkHostname()
-        log.info "-${c_purple}[lifebit-ai/traits]${c_red} Pipeline completed with errors${c_reset}-"
+        log.info "-${c_purple}[lifebit-ai/phenowrangle]${c_red} Pipeline completed with errors${c_reset}-"
     }
 
 }
@@ -469,7 +361,7 @@ def nfcoreHeader() {
     ${c_blue}  |\\ | |__  __ /  ` /  \\ |__) |__         ${c_yellow}}  {${c_reset}
     ${c_blue}  | \\| |       \\__, \\__/ |  \\ |___     ${c_green}\\`-._,-`-,${c_reset}
                                             ${c_green}`._,._,\'${c_reset}
-    ${c_purple}  lifebit-ai/traits v${workflow.manifest.version}${c_reset}
+    ${c_purple}  lifebit-ai/phenowrangle v${workflow.manifest.version}${c_reset}
     -${c_dim}--------------------------------------------------${c_reset}-
     """.stripIndent()
 }

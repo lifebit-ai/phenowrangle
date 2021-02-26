@@ -1,6 +1,6 @@
-# lifebit-ai/traits: Documentation
+# lifebit-ai/phenowrangle: Documentation
 
-The lifebit-ai/traits documentation is split into the following pages:
+The lifebit-ai/phenowrangle documentation is split into the following pages:
 
 <!-- TODO nf-core: If you write more documentation pages, add them to the docs index page here -->
 

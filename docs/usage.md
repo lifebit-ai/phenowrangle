@@ -1,48 +1,77 @@
-# lifebit-ai/traits: Usage
+# lifebit-ai/phenowrangle: Usage
 
 ## Introduction
 
-Runs heritability in your GWAS summary statistics as well as computing the genetic correlation between your trait of interest and a second trait with gwas summary statistics. 
+Allows for processing and transformation of data from Cohort Browser into data ready for pipelines like GWAS, pheWAS, etc.
 
 ## Running the pipeline
 
-The typical command for running the pipeline is as follows:
+### plink
+
+In order to use this pipeline for plink, you can run the following example:
+
+#### plink Binary
 
 ```bash
-nextflow run lifebit-ai/traits -profile binary_h2
+nextflow run main.nf \
+  --mode "plink" \
+  --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
+  --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+  --continuous_var_aggregation "mean" \
+  --continuous_var_transformation "zscore" \
+  --pheno_col "Specimen type" \
+  --design_mode 'case_vs_control_contrast' \
+  --case_group "NOSE" \
+  --trait_type "binary" \
 ```
 
-## 1 - Information about the method & how it is used
+#### plink Quantitative
 
-Vignette: https://github.com/bulik/ldsc/wiki/Heritability-and-Genetic-Correlation
-
-**IMPORTANT NOTE**: it uses `BETA` column as `BETA`, outputs of SAIGE provide this column by default. 
-
-## 2 - Parameters:
-### 2.1 - Required parameters
-- **--post_analysis** : String with `genetic_correlation_h2` or `heritability` for running genetic correlation analysis or heritability after GWAS.
-- **--gwas_summary** : Path/URL to external gwas summary statistics to run genetic correlation analysis between cohort of interest and external GWAS summary statistics. The following column names and format (can also be comma-separated instead of whitespace-separated) are required to ensure it works:
+```bash
+nextflow run main.nf \
+  --mode "plink" \
+  --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
+  --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+  --continuous_var_aggregation "mean" \
+  --continuous_var_transformation "log" \
+  --pheno_col "Height (HCM)" \
+  --trait_type "quantitative" \
 ```
-snpid hg18chr bp a1 a2 or se pval info ngt CEUaf
-rs3131972	1	742584	A	G	1.092	0.0817	0.2819	0.694	0	0.16055
-rs3131969	1	744045	A	G	1.087	0.0781	0.2855	0.939	0	0.133028
-rs3131967	1	744197	T	C	1.093	0.0835	0.2859	0.869	0	.
-rs1048488	1	750775	T	C	0.9158	0.0817	0.2817	0.694	0	0.836449
-rs12562034	1	758311	A	G	0.9391	0.0807	0.4362	0.977	0	0.0925926
-rs4040617	1	769185	A	G	0.9205	0.0777	0.2864	0.98	0	0.87156
-rs28576697	1	860508	T	C	1.079	0.2305	0.7423	0.123	0	0.74537
-rs1110052	1	863421	T	G	1.088	0.2209	0.702	0.137	0	0.752294
-rs7523549	1	869180	T	C	1.823	0.8756	0.4929	0.13	0	0.0137615
-``` 
+
+### plink pheWAS
+
+```bash
+nextflow run main.nf \
+                     --mode 'plink' \
+                     --pheno_data "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
+                     --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                     --continuous_var_aggregation "mean" \
+                     --continuous_var_transformation "log10" \
+                     --pheno_col "Specimen type" \
+                     --case_group "NOSE" \
+                     --trait_type "binary" \
+                     --design_mode "case_vs_control_contrast" \
+                     --phewas
+```
+
+## 1 - Parameters
+
+### 1.1 - Required parameters
+
+- **--mode** : String containing type of output from the pipeline to be run. This prepares the data for one pipeline or another depending on the option. Accepts 'plink'
+- **--pheno_data** : Path to CSV file containing the phenotypic data to be used.
+- **--pheno_metadata** : Path to CSV containing metadata about the phenotypic variables. This helps the scripts to identify the schema and decide which transformation corresponds to each variable.
+- **--id_column** : String defining the name of the ID column. Defaults to `Platekey_in_aggregate_VCF-0.0`
 
 ### 2.2 - Optional parameters
 
-- **--post_analysis** : String with `genetic_correlation_h2` or `heritability` for running genetic correlation analysis or heritability after GWAS.
-- **--gwas_summary** : Path/URL to external gwas summary statistics to run genetic correlation analysis between cohort of interest and external GWAS summary statistics. The following column names and format (can also be comma-separated instead of whitespace-separated) are required to ensure it works:
+- **--pheno_col** : Named of the phenotypic column of interest. Required for plink and GWAS-like analysis.
+- **--query** : Path to file containing query resulting from filtering data in the CB.
+- **--design_mode** : String containing the type of design matrix wanted to be produced
+- **--case_group** : String containing the case group for the desired contrasts.
+- **--continuous_var_transformation** : Transforms continuous variables using 'log', 'log10', 'log2', 'zscores' or 'None'.
+- **--continuous_var_aggregation** : Defines how to aggregate different measurements. Choose between 'max', 'min', 'median' or 'mean'.
+- **--trait_type** : Type of regression being executed: 'binary' or 'quantitative'
+- **--phewas** : Transform data to phewas required format.
 - **--output_tag** : String with tag for files
-- **--gwas_cat_study_id** : String with ID from GWAS catalogue study to be used as input for genetic correlation
-- **--gwas_cat_study_size**  : Integer with size of study being used for genetic correlation
-- **--gwas_catalogue_ftp** : Path to ftp locations of harmonized GWAS catalogue studies. Defaults to "https://lifebit-featured-datasets.s3-eu-west-1.amazonaws.com/projects/gel/prs/ftp_locations_harmonized.csv"
-- **--hapmap3_snplist** : Path to snp list from hapmap3 to be used for analysis. Defaults to "https://lifebit-featured-datasets.s3-eu-west-1.amazonaws.com/projects/gel/gel-gwas/assets/w_hm3.snplist"
-- **--ld_scores_tar_bz2** : Path to precomputed LD scores from Defaults to the European 1000 Genomes cohort at "https://lifebit-featured-datasets.s3-eu-west-1.amazonaws.com/projects/gel/gel-gwas/assets/eur_w_ld_chr.tar.bz2"
 - **--outdir** : Path to output directory. Defaults to './results'

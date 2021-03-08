@@ -115,6 +115,10 @@ id_column = id_column %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.") %>%
             str_replace_all("-[^-]+$", "")
 platekey_col = colnames(cb_data)[str_detect(colnames(cb_data), id_column)]
 if ('i' %in% colnames(cb_data)){
+    cb_data['sample_id'] = cb_data[["i"]]
+    if (platekey_col == 'i'){
+        platekey_col = 'sample_id'
+    }
     cb_data = cb_data %>% filter(!cb_data[[platekey_col]] == "") %>% select(-i)
 }
 if (-('i' %in% colnames(cb_data))){
@@ -151,7 +155,7 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
     ################################
     # Individual ID                #
     ################################
-    if (column %in% c("individual_id", 'i', 'eid')){
+    if (column %in% c("individual_id", 'i', 'eid', 'sample_id')){
 
         pheno_cols = data[[column]]
         return(pheno_cols)
@@ -365,7 +369,7 @@ cb_data_transformed$MAT = 0
 # This should be provided either by default from the CB output or as an argument or calculated from the VCF data
 cb_data_transformed$PHE = cb_data_transformed[[column_to_PHE]]
 
-donor_id_col = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'individual_id|eid')]
+donor_id_col = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'individual_id|eid|sample_id')]
 cb_data_transformed[donor_id_col] = NULL
 
 ##################################################

@@ -3,6 +3,21 @@ name: tests for lifebit-ai/phenowrangle
 on: [push, pull_request]
 
 jobs:
+  plink_ukbio:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nxf_ver: ['20.01.0', '']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nextflow
+        run: |
+          export NXF_VER=${{ matrix.nxf_ver }}
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name: Quantitative plink
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} -profile plink_ukbio
   plink_binary:
     runs-on: ubuntu-latest
     strategy:

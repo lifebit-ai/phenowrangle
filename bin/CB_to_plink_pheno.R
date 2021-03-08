@@ -114,8 +114,9 @@ if (query_file == 'None'){
 id_column = id_column %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.") %>% 
             str_replace_all("-[^-]+$", "")
 
+print(id_column)
+
 ## Hotfix for i as id column
-cb_data['sample_id'] = cb_data[["i"]]
 if (id_column == 'i'){
     platekey_col = 'sample_id'
 } 
@@ -126,12 +127,14 @@ if (id_column != 'i'){
 
 
 if ('i' %in% colnames(cb_data)){
-    cb_data = cb_data %>% filter(!cb_data[[platekey_col]] == "") %>% select(-i)
+    cb_data['sample_id'] = cb_data[["i"]]
+    print(platekey_col)
+    print(cb_data)
+    cb_data = cb_data[!cb_data[[platekey_col]] == "", ] %>% select(-i)
 }
 if (-('i' %in% colnames(cb_data))){
-    cb_data = cb_data %>% filter(!cb_data[[platekey_col]] == "")
+    cb_data = cb_data[!cb_data[[platekey_col]] == "",]
 }
-#Compress multiple measures into a single measurement
 
 
 ##################################################
@@ -376,7 +379,7 @@ cb_data_transformed$MAT = 0
 # This should be provided either by default from the CB output or as an argument or calculated from the VCF data
 cb_data_transformed$PHE = cb_data_transformed[[column_to_PHE]]
 
-donor_id_col = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'individual_id|eid|sample_id')]
+donor_id_col = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'individual_id|eid')]
 cb_data_transformed[donor_id_col] = NULL
 
 ##################################################
@@ -398,7 +401,7 @@ if (sum(str_detect(colnames(cb_data_transformed), 'icd|hpo|doid')) > 0){
 # Write .phe file                                #
 ##################################################
 
-cb_data_transformed = cb_data_transformed %>% select(FID, IID, PAT, MAT, PHE, everything(), -!!as.symbol(column_to_PHE), -!!as.symbol(id_column), -any_of(id_blacklist))
+cb_data_transformed = cb_data_transformed %>% select(FID, IID, PAT, MAT, PHE, everything(), -!!as.symbol(column_to_PHE), -!!as.symbol(platekey_col), -any_of(id_blacklist))
 ### FID, IID this has to be the platekey metadata -> Agg VCF columns. 
 write.table(cb_data_transformed, paste0(out_path,'.phe'), sep='\t',  quote=FALSE, row.names=FALSE)
 print('done')

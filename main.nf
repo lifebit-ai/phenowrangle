@@ -127,6 +127,7 @@ if (params.mode == 'plink'){
                             --query_file "${query_file}" \
                             --continuous_var_transformation "${params.continuous_var_transformation}" \
                             --continuous_var_aggregation "${params.continuous_var_aggregation}" \
+                            --id_column "${params.id_column}" \
                             --outdir "." \
                             --output_tag "${params.output_tag}"
       """

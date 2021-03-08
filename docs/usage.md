@@ -25,7 +25,7 @@ nextflow run main.nf \
   --trait_type "binary" \
 ```
 
-#### plink Quantitative
+#### plink Quantitative
 
 ```bash
 nextflow run main.nf \

@@ -119,7 +119,8 @@ cb_data['sample_id'] = cb_data[["i"]]
 if (id_column == 'i'){
     platekey_col = 'sample_id'
 } 
-if {id_column != 'i'){
+
+if (id_column != 'i'){
     platekey_col = colnames(cb_data)[str_detect(colnames(cb_data), id_column)]
 }
 

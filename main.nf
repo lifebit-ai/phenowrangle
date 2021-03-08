@@ -88,7 +88,7 @@ log.info "-\033[2m--------------------------------------------------\033[0m-"
   Channel preparation
 ---------------------------------------------------*/
 
-ch_query =  params.query ? Channel.value(file(params.query)) : false
+ch_query =  params.query ? Channel.value(file(params.query)) : 'None'
 ch_pheno_data = params.pheno_data ? Channel.value(file(params.pheno_data)) : Channel.empty()
 ch_pheno_metadata = params.pheno_metadata ? Channel.value(file(params.pheno_metadata)) : Channel.empty()
 

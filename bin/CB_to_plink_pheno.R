@@ -113,12 +113,14 @@ if (query_file == 'None'){
 ##################################################
 id_column = id_column %>% to_snake_case(sep_in = ":|\\(|\\)|(?<!\\d)\\.") %>% 
             str_replace_all("-[^-]+$", "")
+
+## Hotfix for i as id column
+cb_data['sample_id'] = cb_data[["i"]]
+if (id_column == 'i'){
+    platekey_col = 'sample_id'
+}
 platekey_col = colnames(cb_data)[str_detect(colnames(cb_data), id_column)]
 if ('i' %in% colnames(cb_data)){
-    cb_data['sample_id'] = cb_data[["i"]]
-    if (id_column == 'i'){
-        platekey_col = 'sample_id'
-    }
     cb_data = cb_data %>% filter(!cb_data[[platekey_col]] == "") %>% select(-i)
 }
 if (-('i' %in% colnames(cb_data))){

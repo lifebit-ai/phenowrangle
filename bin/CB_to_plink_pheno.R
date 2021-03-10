@@ -391,6 +391,8 @@ if (sum(str_detect(colnames(cb_data_transformed), 'icd|hpo|doid')) > 0){
     remove_cols = colnames(cb_data_transformed)[str_detect(colnames(cb_data_transformed), 'icd|hpo|doid')]
     # Generate id_icd_count.csv
     code_df = code_df %>% pivot_longer(!FID, names_to = "vocabulary", values_to = "code") %>% drop_na() %>% select(-vocabulary)
+    # In case the code are in the form "<code> <description>" removes description
+    code_df$code = sapply(strsplit(code_df$code," "), `[`, 1)
     code_df$count = 3 # Do research about this column in particular
     names(code_df)[1]="id"
     write.table(code_df, paste0(out_path,'_id_code_count.csv'), sep=',',  quote=FALSE, row.names=FALSE)

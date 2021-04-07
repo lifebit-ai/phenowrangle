@@ -56,7 +56,7 @@ jobs:
     strategy:
       matrix:
         nxf_ver: ['20.01.0', '']
-        query: ['None', 's3://marcos-lifebit/phenowrangle/query.json']
+        query: ['None', 's3://lifebit-featured-datasets/pipelines/phenowrangle/query.json']
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow
@@ -74,7 +74,7 @@ jobs:
         nxf_ver: ['20.01.0', '']
         continuous_var_aggregation: [median]
         continuous_var_transformation: [None]
-        query: ['None', 's3://marcos-lifebit/phenowrangle/query.json']
+        query: ['None', 's3://lifebit-featured-datasets/pipelines/phenowrangle/query.json']
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow

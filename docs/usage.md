@@ -15,8 +15,8 @@ In order to use this pipeline for plink, you can run the following example:
 ```bash
 nextflow run main.nf \
   --mode "plink" \
-  --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
-  --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+  --pheno_data "s3://lifebit-featured-datasets/pipelines/biobank-gwas/cohort_data_phenos.csv" \
+  --pheno_metadata "s3://lifebit-featured-datasets/pipelines/biobank-gwas/metadata.csv" \
   --continuous_var_aggregation "mean" \
   --continuous_var_transformation "zscore" \
   --pheno_col "Specimen type" \
@@ -30,8 +30,8 @@ nextflow run main.nf \
 ```bash
 nextflow run main.nf \
   --mode "plink" \
-  --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
-  --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+  --pheno_data "s3://lifebit-featured-datasets/pipelines/biobank-gwas/cohort_data_phenos.csv" \
+  --pheno_metadata "s3://lifebit-featured-datasets/pipelines/biobank-gwas/metadata.csv" \
   --continuous_var_aggregation "mean" \
   --continuous_var_transformation "log" \
   --pheno_col "Height (HCM)" \
@@ -43,8 +43,8 @@ nextflow run main.nf \
 ```bash
 nextflow run main.nf \
                      --mode 'plink' \
-                     --pheno_data "s3://lifebit-featured-datasets/projects/gel/phewas/testdata/cohort_data_phenos_phewas.csv" \
-                     --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                     --pheno_data "s3://lifebit-featured-datasets/pipelines/phewas/testdata/cohort_data_phenos_phewas.csv" \
+                     --pheno_metadata "s3://lifebit-featured-datasets/pipelines/biobank-gwas/metadata.csv" \
                      --continuous_var_aggregation "mean" \
                      --continuous_var_transformation "log10" \
                      --pheno_col "Specimen type" \

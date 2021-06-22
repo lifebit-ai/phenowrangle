@@ -149,7 +149,7 @@ encode_pheno_values = function(column, data, pheno_dictionary, transformation, a
 
     # Temporal fix for working with testing version of phenodata and real pheno seamlessly
     # valueType in testing points to the type of visualization, in real data points to the real datatype
-    # Causes bugs when working with testing and GEL
+    # Causes bugs when working with testing
 
     #Real
     if (sum(c('value_type', 'type') %in% colnames(pheno_dictionary)) > 1){

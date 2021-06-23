@@ -56,7 +56,7 @@ jobs:
     strategy:
       matrix:
         nxf_ver: ['20.01.0', '']
-        query: ['None', 's3://marcos-lifebit/phenowrangle/query.json']
+        query: ['None', 's3://lifebit-featured-datasets/pipelines/phenowrangle/query.json']
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow
@@ -74,7 +74,7 @@ jobs:
         nxf_ver: ['20.01.0', '']
         continuous_var_aggregation: [median]
         continuous_var_transformation: [None]
-        query: ['None', 's3://marcos-lifebit/phenowrangle/query.json']
+        query: ['None', 's3://lifebit-featured-datasets/pipelines/phenowrangle/query.json']
     steps:
       - uses: actions/checkout@v2
       - name: Install Nextflow
@@ -110,4 +110,4 @@ jobs:
           name: phewas_input
       - name: run phewas pipeline
         run: |
-          nextflow run lifebit-ai/phewas -r decoupling-phenowrangle --input_phenofile phewas/traits_design_matrix_control_all_case_1_phewas.phe --input_id_code_count design_matrix/traits_id_code_count.csv --plink_input "s3://lifebit-featured-datasets/projects/gel/gel-gwas/testdata/sampleA.{bed,bim,fam}" --pheno_codes icd10
+          nextflow run lifebit-ai/phewas -r decoupling-phenowrangle --input_phenofile phewas/traits_design_matrix_control_all_case_1_phewas.phe --input_id_code_count design_matrix/traits_id_code_count.csv --plink_input "s3://lifebit-featured-datasets/pipelines/biobank-gwas/testdata/sampleA.{bed,bim,fam}" --pheno_codes icd10

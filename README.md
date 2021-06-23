@@ -26,8 +26,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
     ```bash
     nextflow run main.nf --mode "plink" \
-                        --pheno_data "s3://lifebit-featured-datasets/projects/gel/gel-gwas/cohort_data_phenos.csv" \
-                        --pheno_metadata "s3://lifebit-featured-datasets/projects/gel/gel-gwas/metadata.csv" \
+                        --pheno_data "s3://lifebit-featured-datasets/pipelines/biobank-gwas/cohort_data_phenos.csv" \
+                        --pheno_metadata "s3://lifebit-featured-datasets/pipelines/biobank-gwas/metadata.csv" \
                         --continuous_var_aggregation "mean" \
                         --continuous_var_transformation "zscore" \
                         --pheno_col "Specimen type" \
